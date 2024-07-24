@@ -1,0 +1,18 @@
+# Django
+*.env
+*/db.sqlite3
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+
+# React
+*/node_modules/
+*/build/
+*.log
+.cache/
+.next/
+
+
+*.env
