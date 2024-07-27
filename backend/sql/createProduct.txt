@@ -1,0 +1,48 @@
+CREATE TYPE public.warehouse_quantity_type AS (
+    warehouse_id integer,
+    quantity integer
+);
+
+
+CREATE OR REPLACE FUNCTION public.add_product_with_inventory(p_name text, p_description text, p_price numeric, p_warehouses warehouse_quantity_type[])
+ RETURNS TABLE(product_id integer)
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    -- Verificar si el producto ya existe
+    IF EXISTS (SELECT 1 FROM products WHERE name = p_name) THEN
+        RAISE EXCEPTION 'There is already a product with this name.';
+    END IF;
+
+    -- Insertar el producto
+    INSERT INTO products (name, description, price, creation_date)
+    VALUES (p_name, p_description, p_price, now())
+    RETURNING id INTO product_id;
+
+    -- Verificar si el producto fue creado
+    IF NOT EXISTS (SELECT 1 FROM products WHERE id = product_id) THEN
+        RAISE EXCEPTION 'Could not create the product.';
+    END IF;
+
+    -- Verificar si los almacenes existen
+    IF EXISTS (
+        SELECT 1
+        FROM UNNEST(p_warehouses) AS rec
+        WHERE NOT EXISTS (SELECT 1 FROM warehouses WHERE id = (rec).warehouse_id)
+    ) THEN
+        RAISE EXCEPTION 'At least one of the specified stores does not exist.';
+    END IF;
+
+    -- Insertar en la tabla de inventarios
+    INSERT INTO inventory (product_id, warehouse_id, quantity, creation_date)
+    SELECT
+        product_id,
+        (rec).warehouse_id,
+        (rec).quantity,
+        now()
+    FROM UNNEST(p_warehouses) AS rec;
+
+    RETURN QUERY SELECT product_id;
+END
+$function$
+;

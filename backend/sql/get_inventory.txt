@@ -1,0 +1,46 @@
+CREATE OR REPLACE FUNCTION get_inventory_details(inventory_ids integer[])
+RETURNS json AS $$
+DECLARE
+    result json;
+    missing_ids integer[];
+BEGIN
+    -- Obtener los detalles de los inventarios existentes
+    SELECT json_agg(row_to_json(t))
+    INTO result
+    FROM (
+        SELECT 
+            i.id AS id_inventario,
+            p.id AS product_id,
+            w.id AS warehouse_id,
+            p.name AS product_name,
+            p.description AS product_description,
+            p.price AS product_price,
+            w.name AS warehouse_name
+        FROM 
+            inventory i
+        JOIN 
+            products p ON i.product_id = p.id
+        JOIN 
+            warehouses w ON i.warehouse_id = w.id
+        WHERE 
+            i.id = ANY(inventory_ids)
+    ) t;
+
+    -- Encontrar IDs de inventario que no existen en la tabla
+    SELECT ARRAY(
+        SELECT unnest(inventory_ids) EXCEPT
+        SELECT i.id FROM inventory i
+    ) INTO missing_ids;
+
+    -- Verificar si hay IDs faltantes
+    IF array_length(missing_ids, 1) > 0 THEN
+        -- Devolver JSON que incluya los datos existentes y los IDs no encontrados
+        RETURN json_build_object(
+            'details', result,
+            'missing_ids', missing_ids
+        );
+    ELSE
+        RETURN result;
+    END IF;
+END;
+$$ LANGUAGE plpgsql;

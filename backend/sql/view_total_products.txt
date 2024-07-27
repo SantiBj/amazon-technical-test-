@@ -1,0 +1,15 @@
+CREATE OR REPLACE VIEW public.product_inventory_view AS
+SELECT 
+    p.id AS product_id,
+    p.name AS product_name,
+    p.description AS product_description,
+    p.price AS product_price,
+    COALESCE(SUM(i.quantity), 0) AS total_quantity
+FROM 
+    products p
+LEFT JOIN 
+    inventory i ON p.id = i.product_id
+GROUP BY 
+    p.id, p.name, p.description, p.price
+ORDER BY 
+    p.creation_date DESC;

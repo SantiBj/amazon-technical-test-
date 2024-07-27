@@ -11,26 +11,20 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config
+import os
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+SECRET_KEY = config('SECRET_KEY')
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-9b91uir9*4y@8nfcuom*pqrgn(ec9meinvmc^mfnatah41wbh='
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = DEBUG = config('DEBUG')
 
 ALLOWED_HOSTS = []
 
-
 # Application definition
 
-INSTALLED_APPS = [
+BASE_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -38,6 +32,76 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 ]
+
+LOCAL_APPS = [
+    'apps.products',
+    'apps.inventory',
+    'apps.sales'
+]
+
+THIRD_APPS = [
+    'rest_framework',
+    'drf_spectacular'
+]
+
+INSTALLED_APPS = BASE_APPS + LOCAL_APPS + THIRD_APPS
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {name} {message}',
+            'style': '{',
+        }
+    },
+    'handlers': {
+        'products_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/products.log'),
+            'formatter': 'verbose'
+        },
+        'sales_file': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/sales.log'),
+            'formatter': 'verbose'
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        },
+    },
+    'loggers': {
+        'apps.products': {
+            'handlers': ['products_file', 'console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'apps.sales': { 
+            'handlers': ['sales_file', 'console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10, 
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Amazon Inventory.',
+    'DESCRIPTION': 'Api for product, user, warehouse, inventory and sales control.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
